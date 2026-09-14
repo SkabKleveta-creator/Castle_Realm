@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Castle Realm — A Quiet Passage</title><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%23172028' d='M0 0h32v32H0z'/%3E%3Cpath fill='%23d9b778' d='M5 7h5v5h4V5h4v7h4V7h5v20H5z'/%3E%3Cpath fill='%23172028' d='M13 19h6v8h-6z'/%3E%3C/svg%3E"><link rel="stylesheet" href="style.css"></head>
+<body><canvas id="scene" aria-label="Castle Realm third-person 3D game" tabindex="0"></canvas>
+<header><div class="brand">CASTLE REALM <small>A QUIET PASSAGE · PLAYABLE SLICE</small></div><nav><button id="journalBtn">Journal <kbd>J</kbd></button><button id="packBtn">Pack <kbd>I</kbd></button><button id="skillsBtn">Character <kbd>K</kbd></button><button id="menuBtn" aria-label="Open game menu">☰</button></nav></header>
+<section id="hud"><div id="place">Inner Bailey</div><div id="status">Unnoticed</div><div class="meters"><span>Health <b id="hpText">100</b></span><meter id="hp" min="0" max="100" value="100"></meter><span>Stamina</span><meter id="stamina" min="0" max="100" value="100"></meter></div><div id="abilityState"></div></section>
+<canvas id="map" width="160" height="160" aria-label="Local map of discovered surface landmarks"></canvas>
+<div id="objective">Find the Hollow Kin Elder in Lowtown.</div><div id="toast" role="status"></div>
+<div id="prompt"></div><div id="tips">WASD move · drag view / Q E turn · C crouch · F interact · X non-lethal · V lethal · Space strike · R Veil Step</div>
+<div id="touch"><div id="stick" aria-label="Movement joystick"><div id="knob"></div></div><div class="touchActions"><button id="crouchBtn">Crouch</button><button id="interactBtn">Interact</button><button id="takeBtn">Subdue</button><button id="lethalBtn">Lethal</button><button id="strikeBtn">Strike</button><button id="techBtn">Veil</button></div></div>
+<div id="shade" hidden><section id="panel" role="dialog" aria-modal="true" aria-labelledby="panelTitle"><button id="closePanel" aria-label="Close panel">×</button><small id="panelKicker"></small><h1 id="panelTitle"></h1><div id="panelBody"></div></section></div>
+<script src="vendor/three.min.js"></script><script type="module" src="src/game.js"></script></body></html>
