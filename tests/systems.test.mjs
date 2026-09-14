@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createState,SKILLS,NPCS,getTopics,chooseTopic,chooseResponse,act,practice,allocateAttribute,getEffects,evaluateGate,serialize,deserialize,getJournal} from '../src/systems.js';
+import {createState,SKILLS,NPCS,getTopics,chooseTopic,chooseResponse,act,practice,allocateAttribute,getEffects,evaluateGate,serialize,deserialize,getJournal,getObjective} from '../src/systems.js';
 
 test('Commander opens only his second tier; an earned gate survives later hostility and reload',()=>{
   const s=createState();
@@ -148,4 +148,51 @@ test('save roundtrip preserves renderer state, guards, journals and rejects malf
   assert.throws(()=>deserialize('{"__proto__": {"polluted":true}}'));
   const bad=createState();bad.player.health=100000;assert.throws(()=>deserialize(serialize(bad)));
   assert.equal({}.polluted,undefined);
+});
+
+test('protection guidance follows recovery and the actual Elder reveal across saved journeys',()=>{
+  let s=createState();
+  const protection=()=>getJournal(s).find(q=>q.id==='protection');
+  assert.match(getObjective(s),/Elder.*Lowtown.*west/);
+  const brief=act(s,'start_protection');
+  assert.match(brief.message,/court is north/);
+  assert.match(getObjective(s),/court north of the Elder/);
+  assert.match(protection().objectives.join(' '),/only a compromised release/);
+  act(s,'release_negotiated');
+  chooseTopic(s,'elder','old_rites');
+  s=deserialize(serialize(s));
+  assert.equal(s.revealed['elder:old_rites:2'],true);
+  assert.match(getObjective(s),/^Remove the identifying roster/);
+  assert.match(protection().status,/identities exposed/);
+  act(s,'improve_protection');
+  getTopics(s,'elder');
+  assert.match(getObjective(s),/^Return to the Elder.*Old Rites/,'opening the topic hub or hearing a lower tier does not complete the return');
+  assert.match(protection().objectives.join(' '),/No roster remains/);
+  chooseTopic(s,'elder','old_rites');
+  s=deserialize(serialize(s));
+  const before=serialize(s);
+  assert.equal(s.revealed['elder:old_rites:3'],true);
+  assert.match(getObjective(s),/^A Quiet Passage complete/);
+  assert.equal(protection().status,'Complete');
+  assert.equal(serialize(s),before,'reading the objective and journal does not mutate state');
+});
+
+test('optional evidence never completes or blocks the protection objective',()=>{
+  const s=createState();
+  act(s,'take_fragment');act(s,'deliver_fragment');
+  assert.match(getObjective(s),/^Find the Hollow Kin Elder/);
+  act(s,'start_protection');
+  assert.match(getObjective(s),/Release the detained Kin/);
+  act(s,'release_quiet');
+  assert.equal(s.world.collected.roster,true);
+  assert.match(getObjective(s),/^Return to the Elder/);
+  chooseTopic(s,'elder','old_rites');
+  const withoutEvidence=createState();
+  act(withoutEvidence,'start_protection');act(withoutEvidence,'release_quiet');
+  chooseTopic(withoutEvidence,'elder','old_rites');
+  assert.equal(withoutEvidence.quest.proofDelivered,false);
+  assert.equal(getObjective(s),getObjective(withoutEvidence));
+  assert.equal(getJournal(withoutEvidence)[0].status,'Complete');
+  assert.ok(getJournal(s).filter(q=>q.id!=='protection').every(q=>q.status.startsWith('Optional')));
+  assert.ok(getJournal(withoutEvidence).filter(q=>q.id!=='protection').every(q=>q.status.startsWith('Optional')));
 });

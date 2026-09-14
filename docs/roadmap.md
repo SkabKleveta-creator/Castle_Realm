@@ -1,14 +1,15 @@
 # Development roadmap
 
-## Current foundation — v0.2
+## Current foundation — v0.2.1
 
 The slice includes the bailey and Keep hall, compact Lowtown, Forge Quarter and Garrison spaces, three knowing NPCs, protection/evidence tasks, an optional Underneath chamber, Veil Step, patrol stealth, authored wall traversal, progression, inventory and local saves.
 
-The latest improvements connect Crowd Blend, Ghost, Shadow Step, timed climbing, perception/dialogue hints and save continuity. See `validation.md` for completed checks and limits.
+The latest patch improves startup recovery, protection guidance, persistent conversation briefings, visible rescue state and touch sprint. The previous update connected Crowd Blend, Ghost, Shadow Step, timed climbing, perception/dialogue hints and save continuity. See `validation.md` for completed checks and limits.
 
 ## Next validation work
 
-- Complete a real browser playthrough of the protection and evidence routes.
+- Complete a real WebGL browser playthrough; the available cloud browser could not start 3D graphics.
+- Run an uncoached protection session using `blind-playtest.md`, recording stalls and mistaken expectations.
 - Check phone controls, portrait/landscape layouts, camera occlusion and frame rate.
 - Tune detection and pacing from observed play.
 

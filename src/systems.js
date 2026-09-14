@@ -270,7 +270,7 @@ export function act(s,action,context={}) {
   switch(action) {
     case 'start_protection':
       if(s.quest.protection!=='not_started')return result(false,'The Elder is waiting for news of the detained Kin.');
-      s.quest.protection='in_progress';r=result(true,'The detained Kin are held in Lowtown. Free them, then remove the roster that identifies them.');break;
+      s.quest.protection='in_progress';r=result(true,'The holding court is north of me, past the damaged Lowtown wall. Reach the barred entrance without pursuers and release the detained Kin. A quiet release also removes their papers; if the release is compromised, return inside the court to remove the identifying roster.');break;
     case 'release_quiet':case 'release_negotiated':
       if(s.quest.protection==='not_started')return result(false,'Speak with the Hollow Kin Elder first.');
       if(protectionRank(s)>0)return result(false,'The detained Kin have already been released.');
@@ -337,12 +337,22 @@ export function act(s,action,context={}) {
   }
   latch(s);return r;
 }
+const heardElderTruth=s=>!!s.revealed['elder:old_rites:3'];
+/** Visible guidance follows the protection loop. Optional evidence and visits
+ * never hold its completion open, and reading guidance does not change a save. */
+export function getObjective(s) {
+  if(s.quest.protection==='not_started')return 'Find the Hollow Kin Elder in Lowtown, west of the bailey.';
+  if(s.quest.protection==='in_progress')return 'Reach the holding court north of the Elder. Release the detained Kin.';
+  if(protectionRank(s)===1)return 'Remove the identifying roster inside the holding court.';
+  if(!heardElderTruth(s))return 'Return to the Elder and ask about “The Old Rites”.';
+  return 'A Quiet Passage complete. The Kin and their identities are safe.';
+}
 export function getJournal(s) {
-  const rank=protectionRank(s),started=s.quest.protection!=='not_started';
+  const rank=protectionRank(s),started=s.quest.protection!=='not_started',heard=heardElderTruth(s);
   return [
-    {id:'protection',title:'A Quiet Passage',status:rank===2?'Protected':rank===1?'Released · identities exposed':started?'In progress':'Not started',objectives:rank===2?['The detained Kin and their identities are safe. Revisit the Elder’s topics.']:rank===1?['The Kin are free. Remove the identifying roster inside the holding court.','Return to the Elder. Existing trust remains; further protection earns clearer answers.']:started?['Reach the Lowtown holding court without bringing pursuers to the cell.','Release the detained Kin. A discreet approach protects them most completely.']:['Speak with the Hollow Kin Elder in Lowtown.']},
-    {id:'orders',title:'A Garrison Duty',status:s.quest.ordersDelivered?'Returned':s.inventory.includes('orders')?'Recovered':'Optional',objectives:s.quest.ordersDelivered?['Revisit the Commander about the sealed gate and old orders. The sealing still stands.']:['Recover the patrol orders from the Garrison archive shelf and return them to the Commander.']},
-    {id:'underneath',title:'Mechanism Over Myth',status:s.quest.proofDelivered?'Evidence delivered':s.inventory.includes('fragment')?'Proof recovered':'Optional discovery',objectives:s.quest.proofDelivered?['Ask the Master Artisan about the Emberworks fragment and what may connect to it.']:s.inventory.includes('fragment')?['Deliver the recovered fragment to the Master Artisan in the Forge Quarter.']:['Inspect deliberate tool marks beyond the damaged Lowtown wall.','Discover the route beneath the Keep. Garrison Row has no direct tunnel access.','An ancient fragment may earn the Artisan’s knowledge. No level requirement applies.']}
+    {id:'protection',title:'A Quiet Passage',status:rank===2?(heard?'Complete':'Protected · return to Elder'):rank===1?'Released · identities exposed':started?'In progress':'Not started',objectives:rank===2?(heard?['The detained Kin and their identities are safe. You returned to hear the Elder speak plainly.','A Quiet Passage is complete. The Garrison duty and Underneath discovery remain optional.']:['The detained Kin and their identities are safe. No roster remains to remove.','Return south to the Elder in Lowtown and ask about “The Old Rites” to hear what your protection has earned.']):rank===1?['The Kin are free, but their identities remain exposed. Remove the identifying roster inside the holding court, north of the Elder.','Then return south to the Elder and ask again about “The Old Rites”. Existing trust remains; further protection earns clearer answers.']:started?['The holding court is north of the Elder, past the damaged Lowtown wall. Reach the barred entrance without bringing pursuers to it.','Release the detained Kin. A quiet release removes their papers too; only a compromised release needs a separate return to remove the identifying roster.']:['Speak with the Hollow Kin Elder in Lowtown, west of the bailey. Ask who needs protection.']},
+    {id:'orders',title:'A Garrison Duty',status:s.quest.ordersDelivered?'Optional · returned':s.inventory.includes('orders')?'Optional · recovered':'Optional',objectives:s.quest.ordersDelivered?['Revisit the Commander about the sealed gate and old orders. The sealing still stands.']:s.inventory.includes('orders')?['Return the recovered patrol orders to the Commander at the entrance to Garrison Row.']:['The Commander stands at the entrance to Garrison Row, northeast of the bailey. Ask about the service record.','The archive shelf lies farther north in Garrison Row. Recover the patrol orders and return them to the Commander.']},
+    {id:'underneath',title:'Mechanism Over Myth',status:s.quest.proofDelivered?'Optional · evidence delivered':s.inventory.includes('fragment')?'Optional · proof recovered':'Optional discovery',objectives:s.quest.proofDelivered?['Ask the Master Artisan about the Emberworks fragment and what may connect to it.']:s.inventory.includes('fragment')?['Deliver the recovered fragment to the Master Artisan in the Forge Quarter, east of the bailey.']:['Inspect deliberate tool marks beyond the damaged Lowtown wall.','Discover the route beneath the Keep. Garrison Row has no direct tunnel access.','An ancient fragment may earn the Artisan’s knowledge. This discovery is optional and is not required to protect the Kin.']}
   ];
 }
 function safeObject(value,depth=0) {

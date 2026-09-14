@@ -5,32 +5,34 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import fs from 'node:fs';
 
-function boot(saved){
+function boot(saved,options={}){
  const elements=new Map(),listeners={},stored=new Map();if(saved)stored.set("castle-realm-a-quiet-passage-v1",saved);
+ const rendererAttempts=[],saveDownloads=[],bodyClasses=new Set();let reloads=0;
  const context2d=new Proxy({},{get:()=>()=>{}});
  class Element {
-  constructor(tag='div'){this.tagName=tag;this.children=[];this.style={};this.hidden=false;this.disabled=false;this.textContent='';this.value=0;this.classList={add(){},remove(){}};}
+  constructor(tag='div'){this.tagName=tag;this.events={};this.children=[];this.style={};this.hidden=false;this.disabled=false;this.textContent='';this.value=0;this.classList={add(){},remove(){}};}
   set innerHTML(s){this._html=s;this.children=[];for(const m of s.matchAll(/id="([^"]+)"/g))elements.set(m[1],new Element());}
   get innerHTML(){return this._html||'';}
   append(...a){this.children.push(...a);} appendChild(a){this.append(a);return a;}
   insertAdjacentHTML(_,s){this._html=(this._html||'')+s;}
-  focus(){} click(){this.onclick?.();} setPointerCapture(){} addEventListener(){}
+  focus(){} click(){this.onclick?.();} setPointerCapture(){} addEventListener(name,handler){this.events[name]=handler;}
   getContext(){return context2d;} getBoundingClientRect(){return{left:0,top:0,width:108,height:108};}
  }
  for(const m of fs.readFileSync(new URL('../index.html',import.meta.url),'utf8').matchAll(/id="([^"]+)"/g))elements.set(m[1],new Element());
- const document={getElementById:id=>{if(!elements.has(id))throw new Error('Missing DOM ID '+id);return elements.get(id);},createElement:t=>new Element(t),addEventListener(){},activeElement:null};
- const sandbox={console,document,innerWidth:1200,innerHeight:800,devicePixelRatio:1,localStorage:{getItem:k=>stored.get(k)||null,setItem:(k,v)=>stored.set(k,v)},requestAnimationFrame(){},setTimeout(){},URL,Blob,AbortController,addEventListener:(k,f)=>listeners[k]=f};
+ const document={getElementById:id=>{if(!elements.has(id))throw new Error('Missing DOM ID '+id);return elements.get(id);},createElement:t=>new Element(t),addEventListener(){},activeElement:null,body:{classList:{add:name=>bodyClasses.add(name)}}};
+ const sandbox={console,document,innerWidth:1200,innerHeight:800,devicePixelRatio:1,localStorage:{getItem:k=>stored.get(k)||null,setItem:(k,v)=>stored.set(k,v)},requestAnimationFrame(){},setTimeout(){},URL:{createObjectURL(blob){saveDownloads.push(blob);return 'blob:test-save';},revokeObjectURL(){}},location:{protocol:'https:',reload(){reloads++;}},Blob,AbortController,addEventListener:(k,f)=>listeners[k]=f};
  sandbox.window=sandbox;vm.createContext(sandbox);
  vm.runInContext(fs.readFileSync(new URL('../vendor/three.min.js',import.meta.url),'utf8'),sandbox);
- sandbox.THREE.WebGLRenderer=class{constructor(){this.shadowMap={};}setPixelRatio(){}setSize(){}render(scene,camera){assert.ok(Number.isFinite(camera.position.x));let count=0;scene.traverse(o=>{if(o.isMesh)count++;});assert.ok(count>100);}};
+ sandbox.THREE.WebGLRenderer=class{constructor(settings){rendererAttempts.push(settings);if(rendererAttempts.length<=(options.rendererFailures||0))throw new Error('WebGL unavailable in test');this.shadowMap={};}setPixelRatio(){}setSize(){}render(scene,camera){assert.ok(Number.isFinite(camera.position.x));let count=0;scene.traverse(o=>{if(o.isMesh)count++;});assert.ok(count>100);}};
  let sys=fs.readFileSync(new URL('../src/systems.js',import.meta.url),'utf8');
  const exports=[...sys.matchAll(/export\s+(?:async\s+)?(?:function|const|let|class)\s+(\w+)/g)].map(m=>m[1]);
  sys=sys.replace(/\bexport\s+(?=(?:async\s+)?(?:function|const|let|class)\b)/g,'');
  let game=fs.readFileSync(new URL('../src/game.js',import.meta.url),'utf8').replace(/import\s*\{([^}]+)\}\s*from\s*'.\/systems.js';/,'const {$1}=CastleSystems;');
- const api=';testAPI={get state(){return state},get pos(){return pos},get paused(){return paused},get clock(){return clock},get veilUntil(){return veilUntil},get roof(){return roof},get alarm(){return alarm},get heat(){return heat},get climb(){return pendingClimb},get coverGraceUntil(){return coverGraceUntil},get crouched(){return crouched},getEffects,updateCover,updateGuards,toggleCrouch,veil,takedown,restoreWorld,closePanel,tick,openNPC,perform,pack,skills,journal,menu,save,getJournal,interactions,guards,keys,blocked,move};';
- vm.runInContext('const CastleSystems=(()=>{'+sys+';return {'+exports.join(',')+'}})();'+game+api,sandbox,{timeout:15000});
+ const api=';testAPI={get state(){return state},get pos(){return pos},get paused(){return paused},get clock(){return clock},get veilUntil(){return veilUntil},get roof(){return roof},get alarm(){return alarm},get heat(){return heat},get climb(){return pendingClimb},get coverGraceUntil(){return coverGraceUntil},get crouched(){return crouched},get renderer(){return renderer},courtGate,courtRoster,detainedKin,updateQuestProps,getEffects,updateCover,updateGuards,toggleCrouch,veil,takedown,restoreWorld,closePanel,tick,openNPC,perform,pack,skills,journal,menu,save,getJournal,interactions,guards,keys,blocked,move};';
+ game=game.replace('\n}\ninitializeGame();',api+'\n}\ninitializeGame();');
+ vm.runInContext('const CastleSystems=(()=>{'+sys+';return {'+exports.join(',')+'}})();'+game,sandbox,{timeout:15000});
  let time=0;const advance=seconds=>{for(let i=0;i<Math.ceil(seconds/.016);i++){time+=16;sandbox.testAPI.tick(time);}};
- return {api:sandbox.testAPI,elements,stored,advance};
+ return {api:sandbox.testAPI,elements,stored,advance,rendererAttempts,bodyClasses,saveDownloads,get reloads(){return reloads}};
 }
 
 test('real scene/controller initializes, moves, and opens all RPG panels',()=>{
@@ -145,4 +147,68 @@ test('earned Wit skills expose disposition and the next reveal gate in topic hub
  api.openNPC('commander');assert.match(elements.get('topics').innerHTML,/reserved/);assert.match(elements.get('topics').innerHTML,/Greater local trust/);
  api.perform('take_orders');api.perform('garrison_aid');api.openNPC('commander');assert.doesNotMatch(elements.get('topics').innerHTML,/Greater local trust/);
  api.openNPC('artisan');assert.match(elements.get('topics').innerHTML,/Deliver the evidence/);
+});
+
+
+test('graphics failure has working recovery and exports the untouched existing save',async()=>{
+ const prior=boot();prior.api.perform('start_protection');prior.api.save();const saved=[...prior.stored.values()][0];
+ const unavailable=boot(saved,{rendererFailures:Infinity});
+ assert.equal(unavailable.api,undefined,'gameplay must not start without its renderer');
+ assert.equal(unavailable.rendererAttempts.length,2,'normal graphics and one simpler attempt');
+ assert.ok(unavailable.bodyClasses.has('graphicsUnavailable'));assert.equal(unavailable.elements.get('closePanel').hidden,true);
+ assert.match(unavailable.elements.get('panelBody').innerHTML,/Your device save has been kept/);
+ const actions=unavailable.elements.get('recoveryActions').children;
+ actions.find(b=>b.textContent==='Retry graphics').click();assert.equal(unavailable.reloads,1);
+ actions.find(b=>b.textContent==='Export existing save').click();
+ assert.equal(await unavailable.saveDownloads[0].text(),saved);assert.equal([...unavailable.stored.values()][0],saved);
+ const fresh=boot(undefined,{rendererFailures:Infinity});
+ assert.ok(!fresh.elements.get('recoveryActions').children.some(b=>b.textContent==='Export existing save'));
+ assert.equal(fresh.stored.size,0,'a startup failure must not create or overwrite a save');
+});
+
+test('simpler graphics attempt can start the same game after the first request fails',()=>{
+ const {api,rendererAttempts,elements}=boot(undefined,{rendererFailures:1});
+ assert.equal(rendererAttempts.length,2);assert.equal(rendererAttempts[1].antialias,false);
+ assert.equal(api.renderer.shadowMap.enabled,false);api.closePanel();api.menu();
+ assert.match(elements.get('panelBody').innerHTML,/Simpler graphics mode is active/);
+});
+
+test('NPC task results stay in the conversation and the HUD follows recoverable protection',()=>{
+ const {api,elements,advance}=boot();
+ const action=label=>elements.get('panelBody').children.flatMap(n=>n.children||[]).find(b=>b.textContent===label);
+ api.openNPC('elder');action('Ask who needs protection').click();
+ assert.match(elements.get('panelBody').innerHTML,/north of/);
+ api.state.world.exposed=true;api.interactions.find(i=>i.id==='cell').run();advance(.016);
+ assert.match(elements.get('objective').textContent,/roster/i);
+ api.interactions.find(i=>i.id==='roster').run();advance(.016);
+ assert.match(elements.get('objective').textContent,/Old Rites/);
+ api.openNPC('elder');elements.get('topics').children.find(b=>b.textContent.includes('Old Rites')).click();advance(.016);
+ assert.match(elements.get('objective').textContent,/complete/i);assert.equal(api.state.quest.proofDelivered,false);
+ api.interactions.find(i=>i.id==='fragment').run();api.openNPC('artisan');action('Deliver the fragment').click();
+ assert.match(elements.get('panelBody').innerHTML,/Technical questions/);
+ api.interactions.find(i=>i.id==='orders').run();api.openNPC('commander');action('Return the patrol orders').click();
+ assert.match(elements.get('panelBody').innerHTML,/Commander/);
+});
+
+test('rescue and roster removal change world props and survive reloading',()=>{
+ const {api,stored}=boot();api.closePanel();
+ assert.ok(api.detainedKin.every(kin=>kin.visible));assert.equal(api.courtGate.rotation.y,0);assert.equal(api.courtRoster.visible,true);
+ api.perform('start_protection');api.state.world.exposed=true;api.interactions.find(i=>i.id==='cell').run();
+ assert.ok(api.detainedKin.every(kin=>!kin.visible));assert.notEqual(api.courtGate.rotation.y,0);assert.equal(api.courtRoster.visible,true,'compromised rescue leaves the papers');
+ api.interactions.find(i=>i.id==='roster').run();assert.equal(api.courtRoster.visible,false);api.save();
+ const restored=boot([...stored.values()][0]);
+ assert.ok(restored.api.detainedKin.every(kin=>!kin.visible));assert.notEqual(restored.api.courtGate.rotation.y,0);assert.equal(restored.api.courtRoster.visible,false);
+ const quiet=boot();quiet.api.perform('start_protection');quiet.api.interactions.find(i=>i.id==='cell').run();
+ assert.equal(quiet.api.courtRoster.visible,false,'quiet rescue includes destroying the identifying papers');
+});
+
+
+test('touch sprint matches keyboard movement and releases on cancellation or menus',()=>{
+ const walking=boot();walking.api.closePanel();walking.api.keys.KeyW=true;walking.advance(.5);
+ const running=boot();running.api.closePanel();running.api.keys.KeyW=true;
+ const sprint=running.elements.get('sprintBtn');sprint.onpointerdown({pointerId:1,preventDefault(){}});running.advance(.5);
+ assert.ok(running.api.pos.z<walking.api.pos.z-.5);assert.ok(running.api.state.player.stamina<walking.api.state.player.stamina);
+ sprint.events.pointercancel();const stamina=running.api.state.player.stamina;running.advance(.25);assert.ok(running.api.state.player.stamina>stamina);
+ sprint.onpointerdown({pointerId:2,preventDefault(){}});running.api.menu();running.api.closePanel();running.api.keys.KeyW=true;
+ const afterMenu=running.api.state.player.stamina;running.advance(.25);assert.ok(running.api.state.player.stamina>afterMenu,'opening a menu clears held sprint');
 });

@@ -14,6 +14,16 @@ Open `dist/castle-realm-slice.html` in a browser with WebGL support. The release
 
 For development, run a static HTTP server in this directory and open `index.html`. Rebuild the hosted entrypoint, standalone release, and matching source ZIP together with `python3 build.py`. Run domain tests with `node --test tests/*.test.*`.
 
+## Improvements in v0.2.1
+
+- Startup tries simpler graphics if the first request fails. If 3D remains unavailable, a working recovery screen can retry or export the existing save; failed startup does not overwrite it.
+- Rescue objectives and the journal now distinguish freeing the Kin, removing a surviving roster, returning to the Elder, and completing the encounter. Optional evidence never blocks that completion.
+- Task briefings and delivery acknowledgments remain visible inside the NPC conversation.
+- The holding court now shows detained Kin, an opening gate, and a removable roster. The cellar clue has visible tool marks. Rescue state remains visible after reload.
+- Touch controls include a hold-to-sprint button. Releasing/cancelling it or opening a menu clears sprint input.
+
+The cloud-browser blind-test attempt was blocked by unavailable WebGL. These changes have automated coverage; a completed browser gameplay pass is still outstanding. See `docs/blind-playtest.md` for an uncoached 10–15 minute session protocol.
+
 ## Improvements in v0.2
 
 This update keeps the existing world, quests, NPCs, art, and device-local save identity.
@@ -42,7 +52,7 @@ Reloading during a climb returns to its starting footing without awarding practi
 | Veil Step, once discovered | R | Veil |
 | Journal / inventory / character | J / I / K | Top buttons |
 | Pause / close panel | Escape | Menu / close |
-| Sprint | Left Shift while moving | — |
+| Sprint | Either Shift while moving | Hold to sprint while moving |
 
 ## What the slice demonstrates
 

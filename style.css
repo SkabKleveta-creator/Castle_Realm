@@ -25,3 +25,11 @@ nav button,#status,#abilityState,#objective,#panelBody .sub,.skill,.touchActions
   #objective{display:none}#panel{padding:24px;max-height:94dvh}
   #prompt{bottom:155px}#toast{bottom:202px}
 }
+
+/* Keep startup recovery usable when a browser cannot create a 3D context. */
+.graphicsUnavailable nav,.graphicsUnavailable #hud,.graphicsUnavailable #map,.graphicsUnavailable #objective,.graphicsUnavailable #touch,.graphicsUnavailable #tips,.graphicsUnavailable #prompt{display:none}
+#closePanel[hidden]{display:none}
+
+#sprintBtn{position:absolute;right:14px;bottom:calc(168px + env(safe-area-inset-bottom));width:185px;padding:8px 4px;font:.875rem sans-serif;background:#111b24b8;pointer-events:auto;touch-action:none}
+
+@media(pointer:coarse){#prompt{bottom:calc(230px + env(safe-area-inset-bottom))}#toast{bottom:calc(280px + env(safe-area-inset-bottom))}}

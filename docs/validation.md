@@ -1,9 +1,15 @@
-# Validation — v0.2 improvements
+# Validation — v0.2.1 improvements
 
 ## Completed
 
-21 automated checks passed:
+28 automated checks passed:
 
+- Graphics startup returns to a usable recovery panel when both rendering requests fail. Retry works, save export preserves the exact existing bytes, and failed startup writes no save.
+- A successful simpler rendering request initializes the same game with shadows disabled.
+- The actual NPC task buttons retain their results in conversation; HUD objectives progress through partial protection, roster recovery, Elder revelation and completion independently of optional proof.
+- Detained Kin, gate and roster visibility match quiet/compromised rescue outcomes and restored saves.
+- Touch sprint speeds movement, spends stamina, and clears on pointer cancellation and menu opening.
+- Pure quest guidance tracks real topic reveal flags across save reloads without mutating state or requiring optional evidence.
 - Crowd detection eventually raises an alarm, Crowd Blend delays it, and running remains audible.
 - Ghost delays alert and damage for a finite window; brief exposure followed by escape stays recoverable.
 - Shadow Step expires without refreshing while the player remains in the open.
@@ -27,8 +33,14 @@
 
 The hosted entrypoint and standalone game are byte-identical, and the source download is rebuilt with them. The supplied design documents were compared byte-for-byte against their copies in this source package. Three.js r128 was verified against its source Git blob and retains its license.
 
+## Browser attempt
+
+A direct first-time visit to the public GitHub Pages game before this patch reached “3D graphics unavailable.” The browser console confirmed failure to create a WebGL context. Clicking the visible Close control did not close the panel; initialization had stopped before handlers were connected. No movement, rescue, evidence route, or frame-rate result was observed.
+
+This patch adds a simpler graphics attempt and replaces that dead end with recovery controls. Automated coverage forces both failure and fallback-success paths. These adapter results do not establish that the test browser or any particular device can render the game. Source-review findings about guidance and world feedback are separate from the observed startup failure.
+
 ## Limits
 
-These checks do **not** substitute for a real WebGL/browser playthrough. No completed visual QA, frame-rate benchmark, mobile-device playthrough, accessibility audit, or end-to-end browser quest run is claimed. A real browser rendering and gameplay pass remains outstanding. Optional page-tool registration was implemented but could not be validated in a supported browser context.
+These checks do **not** substitute for a real WebGL/browser playthrough. No completed 3D visual QA, frame-rate benchmark, mobile-device playthrough, accessibility audit, or end-to-end browser quest run is claimed. A real browser rendering and gameplay pass remains outstanding. Optional page-tool registration was implemented but could not be validated in a supported browser context.
 
 The first run should therefore be treated as a playable prototype review. Camera behavior around buildings, mobile control comfort, visual occlusion, stealth balance, and encounter pacing are the principal remaining playtest questions.
